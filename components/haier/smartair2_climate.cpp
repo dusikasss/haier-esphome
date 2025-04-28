@@ -20,6 +20,7 @@ constexpr std::chrono::milliseconds INIT_REQUESTS_RETRY_INTERVAL = std::chrono::
 Smartair2Climate::Smartair2Climate() {
   last_status_message_ = std::unique_ptr<uint8_t[]>(new uint8_t[sizeof(smartair2_protocol::HaierPacketControl)]);
   this->other_modes_fan_speed_ = (uint8_t)smartair2_protocol::FanMode::FAN_MID;
+  this->fan_mode_speed_ = (uint8_t)smartair2_protocol::FanMode::FAN_MID;
 }
 
 haier_protocol::HandlerError Smartair2Climate::status_handler_(haier_protocol::FrameType request_type,
