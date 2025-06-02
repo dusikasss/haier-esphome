@@ -370,7 +370,13 @@ void HaierClimateBase::initialization() {
 }
 
 void HaierClimateBase::control(const ClimateCall &call) {
-  ESP_LOGD("Control", "Control call");
+  std::string reason;
+  if (call.get_mode().has_value()) reason += "mode; ";
+  if (call.get_fan_mode().has_value()) reason += "fan_mode; ";
+  if (call.get_swing_mode().has_value()) reason += "swing_mode; ";
+  if (call.get_target_temperature().has_value()) reason += "target_temperature; ";
+  if (call.get_preset().has_value()) reason += "preset; ";
+  ESP_LOGD("Control", "Control call (reason: %s)", reason.c_str());
   if (!this->valid_connection()) {
     ESP_LOGW(TAG, "Can't send control packet, first poll answer not received");
     return;  // cancel the control, we cant do it without a poll answer.
