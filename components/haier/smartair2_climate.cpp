@@ -410,13 +410,19 @@ haier_protocol::HandlerError Smartair2Climate::process_status_message_(const uin
     // Target temperature
     float old_target_temperature = this->target_temperature;
     this->target_temperature = packet.control.set_point + 16.0f + ((packet.control.half_degree == 1) ? 0.5f : 0.0f);
-    should_publish = should_publish || (old_target_temperature != this->target_temperature);
+    if (fabs(old_target_temperature - this->target_temperature) > 0.1f) {
+      should_publish = true;
+      ESP_LOGW(TAG, "Target temperature changed: old=%.4f new=%.4f", old_target_temperature, this->target_temperature);
+    }
   }
   {
     // Current temperature
     float old_current_temperature = this->current_temperature;
     this->current_temperature = packet.control.room_temperature;
-    should_publish = should_publish || (old_current_temperature != this->current_temperature);
+    if (fabs(old_current_temperature - this->current_temperature) > 0.1f) {
+      should_publish = true;
+      ESP_LOGW(TAG, "Current temperature changed: old=%.4f new=%.4f", old_current_temperature, this->current_temperature);
+    }
   }
   {
     // Fan mode
