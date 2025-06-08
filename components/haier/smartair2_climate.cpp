@@ -19,7 +19,7 @@ constexpr std::chrono::milliseconds INIT_REQUESTS_RETRY_INTERVAL = std::chrono::
 
 Smartair2Climate::Smartair2Climate() {
   last_status_message_ = std::unique_ptr<uint8_t[]>(new uint8_t[sizeof(smartair2_protocol::HaierPacketControl)]);
-  this->other_modes_fan_speed_ = (uint8_t)smartair2_protocol::FanMode::FAN_MID;
+  this->other_modes_fan_speed_ = (uint8_t)smartair2_protocol::FanMode::FAN_AUTO;
   this->fan_mode_speed_ = (uint8_t)smartair2_protocol::FanMode::FAN_MID;
 }
 
@@ -233,6 +233,9 @@ haier_protocol::HaierMessage Smartair2Climate::get_power_message(bool state) {
 }
 
 haier_protocol::HaierMessage Smartair2Climate::get_control_message() {
+  ESP_LOGW(TAG, "Creating control message: fan_mode_speed_=0x%02X, other_modes_fan_speed_=0x%02X",
+           this->fan_mode_speed_, this->other_modes_fan_speed_);
+
   uint8_t control_out_buffer[sizeof(smartair2_protocol::HaierPacketControl)];
   memcpy(control_out_buffer, this->last_status_message_.get(), sizeof(smartair2_protocol::HaierPacketControl));
   smartair2_protocol::HaierPacketControl *out_data = (smartair2_protocol::HaierPacketControl *) control_out_buffer;
@@ -391,6 +394,14 @@ haier_protocol::HandlerError Smartair2Climate::process_status_message_(const uin
     return haier_protocol::HandlerError::WRONG_MESSAGE_STRUCTURE;
   smartair2_protocol::HaierStatus packet;
   memcpy(&packet, packet_buffer, size);
+
+  // Log current state before processing
+  ESP_LOGW(TAG, "Before processing: mode=%s, fan=%s, swing=%s, target_temp=%.1f",
+           climate_mode_to_string(this->mode),
+           this->fan_mode.has_value() ? climate_fan_mode_to_string(this->fan_mode.value()) : "none",
+           climate_swing_mode_to_string(this->swing_mode),
+           this->target_temperature);
+
   bool should_publish = false;
   {
     // Extra modes/presets
@@ -404,7 +415,13 @@ haier_protocol::HandlerError Smartair2Climate::process_status_message_(const uin
     } else {
       this->preset = CLIMATE_PRESET_NONE;
     }
-    should_publish = should_publish || (!old_preset.has_value()) || (old_preset.value() != this->preset.value());
+    bool preset_changed = (!old_preset.has_value()) || (old_preset.value() != this->preset.value());
+    should_publish = should_publish || preset_changed;
+    if (preset_changed) {
+      ESP_LOGW(TAG, "Preset changed: old=%s new=%s",
+               old_preset.has_value() ? climate_preset_to_string(old_preset.value()) : "none",
+               climate_preset_to_string(this->preset.value()));
+    }
   }
   {
     // Target temperature
@@ -428,11 +445,21 @@ haier_protocol::HandlerError Smartair2Climate::process_status_message_(const uin
     // Fan mode
     optional<ClimateFanMode> old_fan_mode = this->fan_mode;
     // remember the fan speed we last had for climate vs fan
+    uint8_t old_fan_mode_speed = this->fan_mode_speed_;
+    uint8_t old_other_modes_fan_speed = this->other_modes_fan_speed_;
+
     if (packet.control.ac_mode == (uint8_t) smartair2_protocol::ConditioningMode::FAN) {
       if (packet.control.fan_mode != (uint8_t) smartair2_protocol::FanMode::FAN_AUTO)
         this->fan_mode_speed_ = packet.control.fan_mode;
     } else {
       this->other_modes_fan_speed_ = packet.control.fan_mode;
+    }
+
+    if (old_fan_mode_speed != this->fan_mode_speed_) {
+      ESP_LOGW(TAG, "fan_mode_speed_ changed: old=0x%02X new=0x%02X", old_fan_mode_speed, this->fan_mode_speed_);
+    }
+    if (old_other_modes_fan_speed != this->other_modes_fan_speed_) {
+      ESP_LOGW(TAG, "other_modes_fan_speed_ changed: old=0x%02X new=0x%02X", old_other_modes_fan_speed, this->other_modes_fan_speed_);
     }
     switch (packet.control.fan_mode) {
       case (uint8_t) smartair2_protocol::FanMode::FAN_AUTO:
@@ -454,7 +481,13 @@ haier_protocol::HandlerError Smartair2Climate::process_status_message_(const uin
         this->fan_mode = CLIMATE_FAN_HIGH;
         break;
     }
-    should_publish = should_publish || (!old_fan_mode.has_value()) || (old_fan_mode.value() != fan_mode.value());
+    bool fan_mode_changed = (!old_fan_mode.has_value()) || (old_fan_mode.value() != fan_mode.value());
+    should_publish = should_publish || fan_mode_changed;
+    if (fan_mode_changed) {
+      ESP_LOGW(TAG, "Fan mode changed: old=%s new=%s",
+               old_fan_mode.has_value() ? climate_fan_mode_to_string(old_fan_mode.value()) : "none",
+               climate_fan_mode_to_string(fan_mode.value()));
+    }
   }
   // Display status
   // should be before "Climate mode" because it is changing this->mode
@@ -502,7 +535,12 @@ haier_protocol::HandlerError Smartair2Climate::process_status_message_(const uin
           break;
       }
     }
-    should_publish = should_publish || (old_mode != this->mode);
+    bool mode_changed = (old_mode != this->mode);
+    should_publish = should_publish || mode_changed;
+    if (mode_changed) {
+      ESP_LOGW(TAG, "Climate mode changed: old=%s new=%s",
+               climate_mode_to_string(old_mode), climate_mode_to_string(this->mode));
+    }
   }
   {
     // Swing mode
@@ -535,9 +573,23 @@ haier_protocol::HandlerError Smartair2Climate::process_status_message_(const uin
         swing_mode = CLIMATE_SWING_BOTH;
       }
     }
-    should_publish = should_publish || (old_swing_mode != this->swing_mode);
+    bool swing_mode_changed = (old_swing_mode != this->swing_mode);
+    should_publish = should_publish || swing_mode_changed;
+    if (swing_mode_changed) {
+      ESP_LOGW(TAG, "Swing mode changed: old=%s new=%s",
+               climate_swing_mode_to_string(old_swing_mode), climate_swing_mode_to_string(this->swing_mode));
+    }
   }
   this->last_valid_status_timestamp_ = std::chrono::steady_clock::now();
+
+  // Log state after processing
+  ESP_LOGW(TAG, "After processing: mode=%s, fan=%s, swing=%s, target_temp=%.1f, should_publish=%s",
+           climate_mode_to_string(this->mode),
+           this->fan_mode.has_value() ? climate_fan_mode_to_string(this->fan_mode.value()) : "none",
+           climate_swing_mode_to_string(this->swing_mode),
+           this->target_temperature,
+           should_publish ? "true" : "false");
+
   if (should_publish) {
     this->publish_state();
   }
