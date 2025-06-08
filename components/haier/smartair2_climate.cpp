@@ -397,9 +397,9 @@ haier_protocol::HandlerError Smartair2Climate::process_status_message_(const uin
 
   // Log current state before processing
   ESP_LOGW(TAG, "Before processing: mode=%s, fan=%s, swing=%s, target_temp=%.1f",
-           climate_mode_to_string(this->mode),
-           this->fan_mode.has_value() ? climate_fan_mode_to_string(this->fan_mode.value()) : "none",
-           climate_swing_mode_to_string(this->swing_mode),
+           LOG_STR_ARG(climate_mode_to_string(this->mode)),
+           this->fan_mode.has_value() ? LOG_STR_ARG(climate_fan_mode_to_string(this->fan_mode.value())) : "none",
+           LOG_STR_ARG(climate_swing_mode_to_string(this->swing_mode)),
            this->target_temperature);
 
   bool should_publish = false;
@@ -419,8 +419,8 @@ haier_protocol::HandlerError Smartair2Climate::process_status_message_(const uin
     should_publish = should_publish || preset_changed;
     if (preset_changed) {
       ESP_LOGW(TAG, "Preset changed: old=%s new=%s",
-               old_preset.has_value() ? climate_preset_to_string(old_preset.value()) : "none",
-               climate_preset_to_string(this->preset.value()));
+               old_preset.has_value() ? LOG_STR_ARG(climate_preset_to_string(old_preset.value())) : "none",
+               LOG_STR_ARG(climate_preset_to_string(this->preset.value())));
     }
   }
   {
@@ -485,8 +485,8 @@ haier_protocol::HandlerError Smartair2Climate::process_status_message_(const uin
     should_publish = should_publish || fan_mode_changed;
     if (fan_mode_changed) {
       ESP_LOGW(TAG, "Fan mode changed: old=%s new=%s",
-               old_fan_mode.has_value() ? climate_fan_mode_to_string(old_fan_mode.value()) : "none",
-               climate_fan_mode_to_string(fan_mode.value()));
+               old_fan_mode.has_value() ? LOG_STR_ARG(climate_fan_mode_to_string(old_fan_mode.value())) : "none",
+               LOG_STR_ARG(climate_fan_mode_to_string(fan_mode.value())));
     }
   }
   // Display status
@@ -539,7 +539,7 @@ haier_protocol::HandlerError Smartair2Climate::process_status_message_(const uin
     should_publish = should_publish || mode_changed;
     if (mode_changed) {
       ESP_LOGW(TAG, "Climate mode changed: old=%s new=%s",
-               climate_mode_to_string(old_mode), climate_mode_to_string(this->mode));
+               LOG_STR_ARG(climate_mode_to_string(old_mode)), LOG_STR_ARG(climate_mode_to_string(this->mode)));
     }
   }
   {
@@ -584,9 +584,9 @@ haier_protocol::HandlerError Smartair2Climate::process_status_message_(const uin
 
   // Log state after processing
   ESP_LOGW(TAG, "After processing: mode=%s, fan=%s, swing=%s, target_temp=%.1f, should_publish=%s",
-           climate_mode_to_string(this->mode),
-           this->fan_mode.has_value() ? climate_fan_mode_to_string(this->fan_mode.value()) : "none",
-           climate_swing_mode_to_string(this->swing_mode),
+           LOG_STR_ARG(climate_mode_to_string(this->mode)),
+           this->fan_mode.has_value() ? LOG_STR_ARG(climate_fan_mode_to_string(this->fan_mode.value())) : "none",
+           LOG_STR_ARG(climate_swing_mode_to_string(this->swing_mode)),
            this->target_temperature,
            should_publish ? "true" : "false");
 

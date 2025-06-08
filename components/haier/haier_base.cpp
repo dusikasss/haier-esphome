@@ -381,18 +381,18 @@ void HaierClimateBase::control(const ClimateCall &call) {
   ESP_LOGW("Control", "Control call (reason: %s)", reason.c_str());
   if (call.get_mode().has_value()) {
     ESP_LOGW("Control", "  Mode: %s (current: %s)",
-             climate_mode_to_string(call.get_mode().value()),
-             climate_mode_to_string(this->mode));
+             LOG_STR_ARG(climate_mode_to_string(call.get_mode().value())),
+             LOG_STR_ARG(climate_mode_to_string(this->mode)));
   }
   if (call.get_fan_mode().has_value()) {
     ESP_LOGW("Control", "  Fan mode: %s (current: %s)",
-             climate_fan_mode_to_string(call.get_fan_mode().value()),
-             this->fan_mode.has_value() ? climate_fan_mode_to_string(this->fan_mode.value()) : "none");
+             LOG_STR_ARG(climate_fan_mode_to_string(call.get_fan_mode().value())),
+             this->fan_mode.has_value() ? LOG_STR_ARG(climate_fan_mode_to_string(this->fan_mode.value())) : "none");
   }
   if (call.get_swing_mode().has_value()) {
     ESP_LOGW("Control", "  Swing mode: %s (current: %s)",
-             climate_swing_mode_to_string(call.get_swing_mode().value()),
-             climate_swing_mode_to_string(this->swing_mode));
+             LOG_STR_ARG(climate_swing_mode_to_string(call.get_swing_mode().value())),
+             LOG_STR_ARG(climate_swing_mode_to_string(this->swing_mode)));
   }
   if (call.get_target_temperature().has_value()) {
     ESP_LOGW("Control", "  Target temp: %.1f", call.get_target_temperature().value());
@@ -415,16 +415,16 @@ void HaierClimateBase::control(const ClimateCall &call) {
   {
     if (call.get_mode().has_value() && call.get_mode().value() != this->mode) {
       ESP_LOGW("Control", "Mode actually changed from %s to %s",
-               climate_mode_to_string(this->mode),
-               climate_mode_to_string(call.get_mode().value()));
+               LOG_STR_ARG(climate_mode_to_string(this->mode)),
+               LOG_STR_ARG(climate_mode_to_string(call.get_mode().value())));
       this->next_hvac_settings_.mode = call.get_mode();
       has_changes = true;
     }
     if (call.get_fan_mode().has_value() &&
         (!this->fan_mode.has_value() || call.get_fan_mode().value() != this->fan_mode.value())) {
       ESP_LOGW("Control", "Fan mode actually changed from %s to %s",
-               this->fan_mode.has_value() ? climate_fan_mode_to_string(this->fan_mode.value()) : "none",
-               climate_fan_mode_to_string(call.get_fan_mode().value()));
+               this->fan_mode.has_value() ? LOG_STR_ARG(climate_fan_mode_to_string(this->fan_mode.value())) : "none",
+               LOG_STR_ARG(climate_fan_mode_to_string(call.get_fan_mode().value())));
       this->next_hvac_settings_.fan_mode = call.get_fan_mode();
       has_changes = true;
     }
@@ -445,8 +445,8 @@ void HaierClimateBase::control(const ClimateCall &call) {
     if (call.get_preset().has_value() &&
         (!this->preset.has_value() || call.get_preset().value() != this->preset.value())) {
       ESP_LOGW("Control", "Preset actually changed from %s to %s",
-               this->preset.has_value() ? climate_preset_to_string(this->preset.value()) : "none",
-               climate_preset_to_string(call.get_preset().value()));
+               this->preset.has_value() ? LOG_STR_ARG(climate_preset_to_string(this->preset.value())) : "none",
+               LOG_STR_ARG(climate_preset_to_string(call.get_preset().value())));
       this->next_hvac_settings_.preset = call.get_preset();
       has_changes = true;
     }
